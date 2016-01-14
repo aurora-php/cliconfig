@@ -1,0 +1,25 @@
+{
+    "name":         "octris/cliconfig",
+    "type":         "library",
+    "description":  "Config file library for CLI tools.",
+    "keywords":     [],
+    "homepage":     "https://github.com/octris/cliconfig",
+    "license":      "BSD-3-Clause",
+
+    "authors":      [{
+        "name":         "Harald Lapp",
+        "email":        "harald@octris.org",
+        "homepage":     "http://www.octris.org/"
+    }],
+
+    "require":      {
+        "php":          ">=5.6.0"
+    },
+
+    "autoload":     {
+        "classmap": [ "libs/Cliconfig.php" ],
+        "psr-4":        {
+            "Octris\\Cliconfig\\": "libs/Cliconfig/"
+        }
+    }
+}
