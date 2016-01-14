@@ -168,7 +168,7 @@ class Cliconfig extends \Octris\Cliconfig\Collection
         }
         
         $write = function($data) use ($fp, &$write) {
-            foreach ($this->data as $k => $v) {
+            foreach ($data as $k => $v) {
                 if (is_array($v)) {
                     fputs($fp, '[' . $k . "]\n");
                     
@@ -183,10 +183,11 @@ class Cliconfig extends \Octris\Cliconfig\Collection
         
         fclose($fp);
         
-        if (!rename($tmp, $this->filepath) {
+        if (!rename($tmp, $this->filepath)) {        
+            unlink($tmp);
+            
             throw new \Exception('Unable to overwrite configuration file "' . $this->filepath . '".');
         }
         
-        unlink($tmp);
     }
 }
