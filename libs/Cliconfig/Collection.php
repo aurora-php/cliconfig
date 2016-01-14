@@ -41,15 +41,24 @@ class Collection implements \Iterator, \ArrayAccess, \JsonSerializable, \Countab
     protected $position = 0;
     
     /**
+     * Whether configuration has changed.
+     *
+     * @type    bool
+     */
+    protected $has_changed = false;
+    
+    /**
      * Constructor.
      * 
      * @param   array               $data                   Complete configuration data.
      * @param   array               $ldata                  Local configuration data only.
+     * @param   bool                                        Used to set has_changed flag.
      */
-    public function __construct(array &$data, array &$ldata)
+    public function __construct(array &$data, array &$ldata, &$has_changed)
     {
         $this->data =& $data;
         $this->ldata =& $ldata;
+        $this->has_changed =& $has_changed;
     }
     
     /**
@@ -126,10 +135,12 @@ class Collection implements \Iterator, \ArrayAccess, \JsonSerializable, \Countab
             // return section collection
             if (!isset($this->ldata[$offs])) {
                 // we need to first create the section local, too
+                $this->has_changed = true;
+                
                 $this->ldata[$offs] = array();
             }
             
-            $return = new Collection($this->data[$offs], $this->ldata[$offs]);
+            $return = new Collection($this->data[$offs], $this->ldata[$offs], $this->has_changed);
         } else {
             $return = $this->data[$offs];
         }
@@ -151,10 +162,16 @@ class Collection implements \Iterator, \ArrayAccess, \JsonSerializable, \Countab
             // $...[] =
             $this->data[] = $value;
             $this->ldata[] = $value;
+            
+            $this->has_changed = true;
         } elseif (isset($this->data[$offs]) && is_array($this->data[$offs])) {
             // cannot overwrite section identifier
             throw new \InvalidArgumentException('Unable to overwrite section identifier.');
         } else {
+            if (!isset($this->ldata[$offs]) || $this->ldata[$offs] != $value) {
+                $this->has_changed = true;
+            }
+            
             $this->data[$offs] = $value;
             $this->ldata[$offs] = $value;
         }
@@ -182,6 +199,8 @@ class Collection implements \Iterator, \ArrayAccess, \JsonSerializable, \Countab
             unset($this->data[$offs]);
             
             if (isset($this->ldata[$offs])) {
+                $this->has_changed = true;
+                
                 unset($this->ldata[$offs]);
             }
         }

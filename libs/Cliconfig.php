@@ -82,6 +82,7 @@ class Cliconfig extends \Octris\Cliconfig\Collection
      * Add a section. Does not do anything, if section already exists.
      * 
      * @param   string                  $name                   Name of section to add.
+     * @return  \Octris\Cliconfig\Collection                    Collection of (new) section.
      */
     public function addSection($name)
     {
@@ -91,8 +92,22 @@ class Cliconfig extends \Octris\Cliconfig\Collection
             } else {
                 $this->data[$name] = array();
                 $this->ldata[$name] = array();
+                
+                $this->has_changed = true;
             }
         }
+        
+        return $this[$name];
+    }
+    
+    /**
+     * Check if configuration was modified.
+     * 
+     * @return  bool                                            Return true if configuration was modified.
+     */
+    public function hasChanged()
+    {
+        return $this->has_changed;
     }
     
     /**
@@ -189,5 +204,6 @@ class Cliconfig extends \Octris\Cliconfig\Collection
             throw new \Exception('Unable to overwrite configuration file "' . $this->filepath . '".');
         }
         
+        $this->has_changed = false;
     }
 }
