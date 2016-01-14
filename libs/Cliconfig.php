@@ -103,52 +103,52 @@ class Cliconfig extends \Octris\Cliconfig\Collection
      */
     public function load($filepath, $bubble = true)
     {
-        if (!($realpath = realpath($filepath))) {
-            throw new \InvalidArgumentException('Unable to locate file "' . $filepath . '".');
-        } elseif (!is_file($realpath)) {
-            throw new \InvalidArgumentException('Specified path is not a file "' . $realpath . '".');
-        } elseif (!is_readable($realpath)) {
+        $realpath = $path = realpath($dirpath = dirname($filepath));
+        $filename = basename($filepath);
+        
+        if (is_dir($filepath)) {
+            throw new \InvalidArgumentException('Specified argument is a directory "' . $filepath . '".');
+        } elseif (!($realpath)) {
+            throw new \InvalidArgumentException('Unable to locate directory "' . $dirpath . '".');
+        } elseif (is_file($filepath) && !is_readable($filepath)) {
             throw new \InvalidArgumentException('Specified file is not readble "' . $realpath . '".');
         }
         
-        $this->filepath = $realpath;
-        $filename = basename($realpath);
+        $this->filepath = $realpath . '/' . $filename;
         
-        // collect directories to look at
+        // load local configuration file
+        if (is_file($this->filepath) && ($tmp = parse_ini_file($this->filepath, true, INI_SCANNER_TYPED)) !== false) {
+            $this->ldata = $tmp;
+        }
+        
+        // collect additional directories to look at
         $paths = [];
         
         do {
-            // $path = dirname($path);
             $paths[] = ($path = dirname($path));
-        } while ($path != '/' && $path != $home && $bubble);
+        } while ($path != '/' && $path != $this->home && $bubble);
         
         if ($bubble) {
             $paths = array_unique(array_merge($this->paths, array_reverse($paths)));
         }
 
-        // load local configuration file
-        $data = $ldata = [];
-        
-        if (($tmp = parse_ini_file(array_pop($paths) . '/' . $filename, true, INI_SCANNER_TYPED)) !== false) {
-            $data = $ldata = $tmp;
-        }
-        
         // load global configuration file(s) from additional collected location(s)
+        $data = [];
+        
         foreach ($paths as $path) {
             if (is_readable($path)) {
                 $path = (is_dir($path)
                             ? $path . '/' . $filename
                             : $path);
                 
-                if (($tmp = parse_ini_file($path, true, INI_SCANNER_TYPED)) !== false) {
+                if (is_file($path) && ($tmp = parse_ini_file($path, true, INI_SCANNER_TYPED)) !== false) {
                     $data = array_merge_recursive($data, $tmp);
                 }
             }
         }
         
         // set configuration
-        $this->ldata = $ldata;
-        $this->data = $data;
+        $this->data = array_merge_recursive($data, $this->ldata);
     }
     
     /**
