@@ -160,5 +160,33 @@ class Cliconfig extends \Octris\Cliconfig\Collection
         if (!is_writable($this->filepath)) {
             throw new \Exception('File is read-only "' . $this->filepath . '".');
         }
+        
+        $tmp = tempnam(sys_get_temp_dir(), 'octris');
+        
+        if (!($fp = fopen($tmp, 'w'))) {
+            throw new \Exception('Unable to write to temporary file "' . $tmp . '".');
+        }
+        
+        $write = function($data) use ($fp, &$write) {
+            foreach ($this->data as $k => $v) {
+                if (is_array($v)) {
+                    fputs($fp, '[' . $k . "]\n");
+                    
+                    $write($v);
+                } else {
+                    fputs($fp, $k . ' = ' . (is_numeric($v) ? $v : '"' . $v . '"') . "\n");
+                }
+            }
+        };
+
+        $write($this->ldata);
+        
+        fclose($fp);
+        
+        if (!rename($tmp, $this->filepath) {
+            throw new \Exception('Unable to overwrite configuration file "' . $this->filepath . '".');
+        }
+        
+        unlink($tmp);
     }
 }
