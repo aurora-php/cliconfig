@@ -42,13 +42,6 @@ class Cliconfig extends \Octris\Cliconfig\Collection
     protected $filepath;
     
     /**
-     * Configuration data.
-     *
-     * @type    array
-     */
-    protected $data = array();
-
-    /**
      * Constructor.
      * 
      * @param   bool                    $paths                  Additional paths to look for configuration files.
@@ -56,11 +49,9 @@ class Cliconfig extends \Octris\Cliconfig\Collection
     public function __construct($paths = array())
     {
         $this->home = posix_getpwuid(posix_getuid())['dir'];
-        $this->paths = array_unique(array_merge($paths, $this->home));
+        $this->paths = array_unique(array_merge($paths, [$this->home]));
     }
 
-    *
-    
     /**
      * Test whether configuration has a specified section.
      * 
@@ -73,7 +64,23 @@ class Cliconfig extends \Octris\Cliconfig\Collection
     }
     
     /**
+     * Add a section. Does not do anything, if section already exists.
      * 
+     * @param   string                  $name                   Name of section to add.
+     */
+    public function addSection($name)
+    {
+        if (!$this->hasSection($name)) {
+            if (isset($this->data[$name])) {
+                throw new \Exception('Unable to overwrite configuration setting with a section.');
+            } else {
+                $this->data[$name] = array();
+                $this->ldata[$name] = array();
+            }
+        }
+    }
+    
+    /**
      * Load configuration file.
      * 
      * @param   string                  $filepath               Path of file to load.
@@ -103,10 +110,15 @@ class Cliconfig extends \Octris\Cliconfig\Collection
         if ($bubble) {
             $paths = array_unique(array_merge($this->paths, array_reverse($paths)));
         }
+
+        // load local configuration file
+        $data = $ldata = [];
         
-        // load configuration file from collected locations
-        $data = [];
+        if (($tmp = parse_ini_file(array_pop($paths) . '/' . $filename, true, INI_SCANNER_TYPED)) !== false) {
+            $data = $ldata = $tmp;
+        }
         
+        // load global configuration file(s) from additional collected location(s)
         foreach ($paths as $path) {
             if (is_readable($path)) {
                 $path = (is_dir($path)
@@ -119,6 +131,19 @@ class Cliconfig extends \Octris\Cliconfig\Collection
             }
         }
         
+        // set configuration
+        $this->ldata = $ldata;
         $this->data = $data;
+    }
+    
+    /**
+     * Save configuration. This only stores the local configuration and possible configuration changes to
+     * the location it was read from.
+     */
+    public function save()
+    {
+        if (!is_writable($this->filepath)) {
+            throw new \Exception('File is read-only "' . $this->filepath . '".');
+        }
     }
 }

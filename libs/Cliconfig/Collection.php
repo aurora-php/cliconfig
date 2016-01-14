@@ -17,23 +17,39 @@ namespace Octris\Cliconfig;
  * @copyright   copyright (c) 2016 by Harald Lapp
  * @author      Harald Lapp <harald@octris.org>
  */
-class Collection implements \IteratorAggregate, \ArrayAccess, \JsonSerializable, \Countable
+class Collection implements \Iterator, \ArrayAccess, \JsonSerializable, \Countable
 {
     /**
-     * Data stored in collection.
+     * Local configuration data only.
      *
      * @type    array
      */
-    protected $data;
+    protected $ldata = array();
+    
+    /**
+     * Complete configuration data.
+     *
+     * @type    array
+     */
+    protected $data = array();
+    
+    /**
+     * Position for iterator.
+     *
+     * @type    int
+     */
+    protected $position = 0;
     
     /**
      * Constructor.
      * 
-     * @param   array               $data                   Optional data to fill collection with.
+     * @param   array               $data                   Complete configuration data.
+     * @param   array               $ldata                  Local configuration data only.
      */
-    public function __construct(array &$data = array())
+    public function __construct(array &$data, array &$ldata)
     {
         $this->data =& $data;
+        $this->ldata =& $ldata;
     }
     
     /**
@@ -46,16 +62,52 @@ class Collection implements \IteratorAggregate, \ArrayAccess, \JsonSerializable,
         return $this->data;
     }
 
-    /** IteratorAggregate **/
+    /** Iterator **/
 
     /**
-     * Return iterator for collection.
-     *
-     * @return  \Iterator                                   Iterator instance for iterating over collection.
+     * Return key of item.
+     * 
+     * @return  string                                      Key of item.
      */
-    public function getIterator()
+    public function key() {
+        return key($this->data);
+    }
+ 
+    /**
+     * Return value of item.
+     * 
+     * @return  scalar                                      Value of item.
+     */
+    public function current() {
+        return current($this->data);
+    }
+ 
+    /**
+     * Move pointer to the next item but skip sections.
+     */
+    public function next()
     {
-        return new \ArrayIterator($this->data);
+        do {
+            $item = next($this->data);
+            ++$this->position;
+        } while (is_array($item));
+    }
+
+    /**
+     * Rewind collection.
+     */
+    public function rewind()
+    {
+        rewind($this->data);
+        $this->position = 0;
+    }
+
+    /**
+     * Test if position is valid.
+     */
+    public function valid()
+    {
+        return (count($this->data) > $this->position);
     }
 
     /** ArrayAccess **/
@@ -72,7 +124,12 @@ class Collection implements \IteratorAggregate, \ArrayAccess, \JsonSerializable,
             throw new \InvalidArgumentException('Undefined index "' . $offs . '".');
         } elseif (is_array($this->data[$offs])) {
             // return section collection
-            $return = new Collection($this->data[$offs]);
+            if (!isset($this->ldata[$offs])) {
+                // we need to first create the section local, too
+                $this->ldata[$offs] = array();
+            }
+            
+            $return = new Collection($this->data[$offs], $this->ldata[$offs]);
         } else {
             $return = $this->data[$offs];
         }
@@ -93,11 +150,13 @@ class Collection implements \IteratorAggregate, \ArrayAccess, \JsonSerializable,
         } elseif (is_null($offs)) {
             // $...[] =
             $this->data[] = $value;
+            $this->ldata[] = $value;
         } elseif (isset($this->data[$offs]) && is_array($this->data[$offs])) {
             // cannot overwrite section identifier
             throw new \InvalidArgumentException('Unable to overwrite section identifier.');
         } else {
             $this->data[$offs] = $value;
+            $this->ldata[$offs] = $value;
         }
     }
 
@@ -119,9 +178,13 @@ class Collection implements \IteratorAggregate, \ArrayAccess, \JsonSerializable,
      */
     public function offsetUnset($offs)
     {
-        if (isset($this->data[$offs]));
-
-        unset($this->data[$offs]);
+        if (isset($this->data[$offs])) {
+            unset($this->data[$offs]);
+            
+            if (isset($this->ldata[$offs])) {
+                unset($this->ldata[$offs]);
+            }
+        }
     }
     
     /** JsonSerializable **/
