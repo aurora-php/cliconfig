@@ -53,6 +53,21 @@ class Cliconfig extends \Octris\Cliconfig\Collection
     }
 
     /**
+     * Return useful informat if var_dump is used with collection.
+     *
+     * @return  array                                       Stored data.
+     */
+    public function __debugInfo()
+    {
+        return [
+            'filepath' => $this->filepath,
+            'HOME' => $this->home,
+            'paths' => $this->paths,
+            'data' => $this->data
+        ];
+    }
+
+    /**
      * Test whether configuration has a specified section.
      * 
      * @param   string                  $name                   Name of section to check.
