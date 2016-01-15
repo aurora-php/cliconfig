@@ -26,24 +26,24 @@ class Cliconfig extends \Octris\Cliconfig\Collection
      * @type    array
      */
     protected $paths;
-    
+
     /**
      * Home directory of user.
      *
      * @type    string
      */
     protected $home;
-    
+
     /**
      * Filepath.
      *
      * @type    string
      */
     protected $filepath;
-    
+
     /**
      * Constructor.
-     * 
+     *
      * @param   bool                    $paths                  Additional paths to look for configuration files.
      */
     public function __construct($paths = array())
@@ -54,7 +54,7 @@ class Cliconfig extends \Octris\Cliconfig\Collection
 
     /**
      * Determine HOME directory.
-     * 
+     *
      * @return  string                                      Home directory.
      */
     public static function getHome()
@@ -62,7 +62,7 @@ class Cliconfig extends \Octris\Cliconfig\Collection
         if (($home = getenv('HOME')) === '') {
             $home = posix_getpwuid(posix_getuid())['dir'];
         }
-        
+
         return $home;
     }
 
@@ -83,7 +83,7 @@ class Cliconfig extends \Octris\Cliconfig\Collection
 
     /**
      * Test whether configuration has a specified section.
-     * 
+     *
      * @param   string                  $name                   Name of section to check.
      * @return  bool                                            Returns true if section exists.
      */
@@ -91,10 +91,10 @@ class Cliconfig extends \Octris\Cliconfig\Collection
     {
         return (isset($this->data[$name]) && is_array($this->data[$name]));
     }
-    
+
     /**
      * Add a section. Does not do anything, if section already exists.
-     * 
+     *
      * @param   string                  $name                   Name of section to add.
      * @return  \Octris\Cliconfig\Collection                    Collection of (new) section.
      */
@@ -106,27 +106,44 @@ class Cliconfig extends \Octris\Cliconfig\Collection
             } else {
                 $this->data[$name] = array();
                 $this->ldata[$name] = array();
-                
+
                 $this->has_changed = true;
             }
         }
-        
+
         return $this[$name];
     }
-    
+
+    /**
+     * Return section names.
+     *
+     * @return  array                                           Section names.
+     */
+    public function getSections()
+    {
+        $return = array_filter(
+            $this->data,
+            function($item) {
+                return (is_array($item));
+            }
+        );
+
+        return $return;
+    }
+
     /**
      * Check if configuration was modified.
-     * 
+     *
      * @return  bool                                            Return true if configuration was modified.
      */
     public function hasChanged()
     {
         return $this->has_changed;
     }
-    
+
     /**
      * Load configuration file.
-     * 
+     *
      * @param   string                  $filepath               Path of file to load.
      * @param   bool                    $bubble                 Whether to look in parent directories to locate files to merge with.
      */
@@ -134,7 +151,7 @@ class Cliconfig extends \Octris\Cliconfig\Collection
     {
         $realpath = $path = realpath($dirpath = dirname($filepath));
         $filename = basename($filepath);
-        
+
         if (is_dir($filepath)) {
             throw new \InvalidArgumentException('Specified argument is a directory "' . $filepath . '".');
         } elseif (!($realpath)) {
@@ -142,44 +159,44 @@ class Cliconfig extends \Octris\Cliconfig\Collection
         } elseif (is_file($filepath) && !is_readable($filepath)) {
             throw new \InvalidArgumentException('Specified file is not readble "' . $realpath . '".');
         }
-        
+
         $this->filepath = $realpath . '/' . $filename;
-        
+
         // load local configuration file
         if (is_file($this->filepath) && ($tmp = parse_ini_file($this->filepath, true, INI_SCANNER_TYPED)) !== false) {
             $this->ldata = $tmp;
         }
-        
+
         // collect additional directories to look at
         $paths = [];
-        
+
         do {
             $paths[] = ($path = dirname($path));
         } while ($path != '/' && $path != $this->home && $bubble);
-        
+
         if ($bubble) {
             $paths = array_unique(array_merge($this->paths, array_reverse($paths)));
         }
 
         // load global configuration file(s) from additional collected location(s)
         $data = [];
-        
+
         foreach ($paths as $path) {
             if (is_readable($path)) {
                 $path = (is_dir($path)
                             ? $path . '/' . $filename
                             : $path);
-                
+
                 if (is_file($path) && ($tmp = parse_ini_file($path, true, INI_SCANNER_TYPED)) !== false) {
                     $data = array_merge_recursive($data, $tmp);
                 }
             }
         }
-        
+
         // set configuration
         $this->data = array_merge_recursive($data, $this->ldata);
     }
-    
+
     /**
      * Save configuration. This only stores the local configuration and possible configuration changes to
      * the location it was read from.
@@ -189,18 +206,18 @@ class Cliconfig extends \Octris\Cliconfig\Collection
         if (!is_writable($this->filepath)) {
             throw new \Exception('File is read-only "' . $this->filepath . '".');
         }
-        
+
         $tmp = tempnam(sys_get_temp_dir(), 'octris');
-        
+
         if (!($fp = fopen($tmp, 'w'))) {
             throw new \Exception('Unable to write to temporary file "' . $tmp . '".');
         }
-        
+
         $write = function($data) use ($fp, &$write) {
             foreach ($data as $k => $v) {
                 if (is_array($v)) {
                     fputs($fp, '[' . $k . "]\n");
-                    
+
                     $write($v);
                 } else {
                     fputs($fp, $k . ' = ' . (is_numeric($v) ? $v : '"' . $v . '"') . "\n");
@@ -209,15 +226,15 @@ class Cliconfig extends \Octris\Cliconfig\Collection
         };
 
         $write($this->ldata);
-        
+
         fclose($fp);
-        
-        if (!rename($tmp, $this->filepath)) {        
+
+        if (!rename($tmp, $this->filepath)) {
             unlink($tmp);
-            
+
             throw new \Exception('Unable to overwrite configuration file "' . $this->filepath . '".');
         }
-        
+
         $this->has_changed = false;
     }
 }
