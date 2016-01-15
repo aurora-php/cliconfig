@@ -48,8 +48,22 @@ class Cliconfig extends \Octris\Cliconfig\Collection
      */
     public function __construct($paths = array())
     {
-        $this->home = posix_getpwuid(posix_getuid())['dir'];
+        $this->home = self::getHome();
         $this->paths = array_unique(array_merge($paths, [$this->home]));
+    }
+
+    /**
+     * Determine HOME directory.
+     * 
+     * @return  string                                      Home directory.
+     */
+    public static function getHome()
+    {
+        if (($home = getenv('HOME')) === '') {
+            $home = posix_getpwuid(posix_getuid())['dir'];
+        }
+        
+        return $home;
     }
 
     /**
