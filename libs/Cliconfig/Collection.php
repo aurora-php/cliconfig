@@ -25,31 +25,31 @@ class Collection implements \Iterator, \ArrayAccess, \JsonSerializable, \Countab
      * @type    array
      */
     protected $ldata = array();
-    
+
     /**
      * Complete configuration data.
      *
      * @type    array
      */
     protected $data = array();
-    
+
     /**
      * Position for iterator.
      *
      * @type    int
      */
     protected $position = 0;
-    
+
     /**
      * Whether configuration has changed.
      *
      * @type    bool
      */
     protected $has_changed = false;
-    
+
     /**
      * Constructor.
-     * 
+     *
      * @param   array               $data                   Complete configuration data.
      * @param   array               $ldata                  Local configuration data only.
      * @param   bool                                        Used to set has_changed flag.
@@ -60,7 +60,7 @@ class Collection implements \Iterator, \ArrayAccess, \JsonSerializable, \Countab
         $this->ldata =& $ldata;
         $this->has_changed =& $has_changed;
     }
-    
+
     /**
      * Return stored data if var_dump is used with collection.
      *
@@ -75,22 +75,22 @@ class Collection implements \Iterator, \ArrayAccess, \JsonSerializable, \Countab
 
     /**
      * Return key of item.
-     * 
+     *
      * @return  string                                      Key of item.
      */
     public function key() {
         return key($this->data);
     }
- 
+
     /**
      * Return value of item.
-     * 
+     *
      * @return  scalar                                      Value of item.
      */
     public function current() {
         return current($this->data);
     }
- 
+
     /**
      * Move pointer to the next item but skip sections.
      */
@@ -107,7 +107,7 @@ class Collection implements \Iterator, \ArrayAccess, \JsonSerializable, \Countab
      */
     public function rewind()
     {
-        rewind($this->data);
+        reset($this->data);
         $this->position = 0;
     }
 
@@ -136,15 +136,15 @@ class Collection implements \Iterator, \ArrayAccess, \JsonSerializable, \Countab
             if (!isset($this->ldata[$offs])) {
                 // we need to first create the section local, too
                 $this->has_changed = true;
-                
+
                 $this->ldata[$offs] = array();
             }
-            
+
             $return = new Collection($this->data[$offs], $this->ldata[$offs], $this->has_changed);
         } else {
             $return = $this->data[$offs];
         }
-        
+
         return $return;
     }
 
@@ -162,7 +162,7 @@ class Collection implements \Iterator, \ArrayAccess, \JsonSerializable, \Countab
             // $...[] =
             $this->data[] = $value;
             $this->ldata[] = $value;
-            
+
             $this->has_changed = true;
         } elseif (isset($this->data[$offs]) && is_array($this->data[$offs])) {
             // cannot overwrite section identifier
@@ -171,7 +171,7 @@ class Collection implements \Iterator, \ArrayAccess, \JsonSerializable, \Countab
             if (!isset($this->ldata[$offs]) || $this->ldata[$offs] != $value) {
                 $this->has_changed = true;
             }
-            
+
             $this->data[$offs] = $value;
             $this->ldata[$offs] = $value;
         }
@@ -197,15 +197,15 @@ class Collection implements \Iterator, \ArrayAccess, \JsonSerializable, \Countab
     {
         if (isset($this->data[$offs])) {
             unset($this->data[$offs]);
-            
+
             if (isset($this->ldata[$offs])) {
                 $this->has_changed = true;
-                
+
                 unset($this->ldata[$offs]);
             }
         }
     }
-    
+
     /** JsonSerializable **/
 
     /**
