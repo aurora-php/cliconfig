@@ -170,9 +170,9 @@ class Cliconfig extends \Octris\Cliconfig\Collection
         // collect additional directories to look at
         $paths = [];
 
-        do {
+        while ($path != '/' && $path != $this->home && $bubble) {
             $paths[] = ($path = dirname($path));
-        } while ($path != '/' && $path != $this->home && $bubble);
+        }
 
         if ($bubble) {
             $paths = array_unique(array_merge($this->paths, array_reverse($paths)));
@@ -192,8 +192,6 @@ class Cliconfig extends \Octris\Cliconfig\Collection
                 }
             }
         }
-
-        var_dump($data, $this->ldata);
 
         // set configuration
         $this->data = array_replace_recursive($data, $this->ldata);
