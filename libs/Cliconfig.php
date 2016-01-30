@@ -188,13 +188,15 @@ class Cliconfig extends \Octris\Cliconfig\Collection
                             : $path);
 
                 if (is_file($path) && ($tmp = parse_ini_file($path, true, INI_SCANNER_TYPED)) !== false) {
-                    $data = array_merge_recursive($data, $tmp);
+                    $data = array_replace_recursive($data, $tmp);
                 }
             }
         }
 
+        var_dump($data, $this->ldata);
+
         // set configuration
-        $this->data = array_merge_recursive($data, $this->ldata);
+        $this->data = array_replace_recursive($data, $this->ldata);
     }
 
     /**
